@@ -1,9 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
+    <title>Opencv-js</title>
 </head>
+
 <body>
-	Hola
+    <div id="app">
+		<div>
+		    <button id="actionBtn">Start</button>
+		</div>
+		<video id="video" width="300" height="225"></video>
+		<canvas id="canvasMask"></canvas>
+		<canvas id="canvasOpen"></canvas>
+		<canvas id="canvasOutput"></canvas>
+    </div>
+
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+    <script src="https://unpkg.com/buefy/dist/components/table"></script>
+    <script src="https://unpkg.com/buefy/dist/components/input"></script>
+	<script async src="opencvp.js" type="text/javascript" onload="onCvLoaded();"></script>
+
+    <script>
+    	function onCvLoaded () {
+    console.log('cv', cv);
+    cv.onRuntimeInitialized = onReady;
+}
+const video = document.getElementById('video');
+const actionBtn = document.getElementById('actionBtn');
+const width = 300;
+const height = 225;
+const FPS = 30;
+let stream;
+let streaming = false;
+var rmin = [0, 51, 0, 0]
+var rmax = [50, 255, 50, 255]
+function onReady () {
+    let src, dst, lay;
+    const cap = new cv.VideoCapture(video);
+
+    actionBtn.addEventListener('click', () => {
+        if (streaming) {
+            stop();
+            actionBtn.textContent = 'Start';
+        } else {
+            start();
+            actionBtn.textContent = 'Stop';
+        }
+    });
+
+    function start () {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then(_stream => {
+            stream = _stream;
+            console.log('stream', stream);
+            video.srcObject = stream;
+            video.play();
+            streaming = true;
+            src = new cv.Mat(height, width, cv.CV_8UC4);
+            mask = new cv.Mat(height, width, cv.CV_8UC4);
+            open = new cv.Mat(height, width, cv.CV_8UC4);
+            dst = new cv.Mat(height, width, cv.CV_8UC4);
+            requestAnimationFrame(processVideo);
+        })
+        .catch(err => console.log(`An error occurred: ${err}`));
+    }
+
+    function stop () {
+        if (video) {
+            video.pause();
+            video.srcObject = null;
+        }
+        if (stream) {
+            stream.getVideoTracks()[0].stop();
+        }
+        streaming = false;
+    }
+
+    function processVideo () {
+        if (!streaming) {
+            src.delete();
+            dst.delete();
+            return;
+        }
+        const begin = Date.now();
+        cap.read(src)
+        //cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+
+        let low = new cv.Mat(src.rows, src.cols, src.type(), rmin);
+        let high = new cv.Mat(src.rows, src.cols, src.type(), rmax);
+        cv.inRange(src, low, high, mask);
+        low.delete(); high.delete();
+
+        let M = cv.Mat.ones(5, 5, cv.CV_8U);
+        let anchor = new cv.Point(-1, -1);
+        cv.morphologyEx(mask, open, cv.MORPH_OPEN, M, anchor, 1, cv.BORDER_CONSTANT);
+        M.delete();
+
+        let rect = cv.boundingRect(open);
+        let contoursColor = new cv.Scalar(255, 255, 0);
+        let rectangleColor = new cv.Scalar(255, 0, 0);
+        //cv.drawContours(dst, contours, 0, contoursColor, 1, 8, hierarchy, 100);
+        let point1 = new cv.Point(rect.x, rect.y);
+        let point2 = new cv.Point(rect.x + rect.width, rect.y + rect.height);
+        cv.rectangle(src, point1, point2, rectangleColor, 2, cv.LINE_AA, 0);
+
+
+        cv.imshow('canvasMask', mask);
+        cv.imshow('canvasOpen', open);
+        cv.imshow('canvasOutput', src);
+        requestAnimationFrame(processVideo);
+    }
+    actionBtn.click()
+}
+        new Vue({
+            el: '#app'
+        })
+    </script>
 </body>
 </html>
