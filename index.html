@@ -1,31 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
+    <title>Intelli</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
-    <title>Opencv-js</title>
+    <style type="text/css">
+    	.p-1 {
+		  padding: 1em;
+		  width: 100%;
+		}
+		.sidebar-page {
+		    display: flex;
+		    flex-direction: column;
+		    width: 100%;
+		    min-height: 100%;
+		}
+		.sidebar-page  .sidebar-layout {
+	        display: flex;
+	        flex-direction: row;
+	        min-height: 100%;
+	    }
+    </style>
 </head>
-
 <body>
-    <div id="app">
-		<div>
-		    <button id="actionBtn">Start</button>
-		</div>
-		<video id="video" width="300" height="225"></video>
-		<canvas id="canvasMask"></canvas>
-		<canvas id="canvasOpen"></canvas>
-		<canvas id="canvasOutput"></canvas>
+	<div id="app">
+		<div class="sidebar-page">
+        <section class="sidebar-layout">
+             <b-sidebar position="static" mobile="hide" type="is-light" open >
+                <div class="p-1">
+                    <div class="block">
+                    <img src="./logo.png" alt="Opencv-js" />
+                    </div>
+                    <b-menu class="is-custom-mobile">
+                        <b-menu-list label="Procesamiento de imagenes">
+                            <b-menu-item icon="information-outline" label="Cambiando espacion de colores" @click="opcion='espacio-color'"></b-menu-item>
+                            <b-menu-item icon="information-outline" label="Transformacion de forma" @click="opcion='forma'"></b-menu-item>
+                            <b-menu-item icon="information-outline" label="Deteccion de borde" @click="opcion='borde'"></b-menu-item>
+                        </b-menu-list>
+                    </b-menu>
+                </div>
+            </b-sidebar>
+
+            <div class="p-1">
+				<div>
+				    <button id="actionBtn">Start</button>
+				</div>
+				<div>
+					<video id="video" width="300" height="225"></video>
+				</div>
+				<div>
+					<canvas ref="lya" id="lya"></canvas>
+				</div>
+				<div style="display: flex;">
+					<canvas ref="lyb" id="lyb"></canvas>
+					<div v-if="opcion=='espacio-color'" style="flex:1">
+						<b-field label="Color minimo">
+				            <b-slider :min="0" :max="255" v-model="color.min[0]"></b-slider>
+				            <b-slider :min="0" :max="255" v-model="color.min[1]"></b-slider>
+				            <b-slider :min="0" :max="255" v-model="color.min[2]"></b-slider>
+				        </b-field>
+						<b-field label="Color minimo">
+				            <b-slider :min="0" :max="255" v-model="color.max[0]"></b-slider>
+				            <b-slider :min="0" :max="255" v-model="color.max[1]"></b-slider>
+				            <b-slider :min="0" :max="255" v-model="color.max[2]"></b-slider>
+				        </b-field>
+					</div>
+				</div>
+				<div>
+					<canvas ref="lyc" id="lyc"></canvas>
+				</div>
+				<div>
+					<canvas ref="lyd" id="lyd"></canvas>
+				</div>
+				<div>
+					<canvas ref="lye" id="lye"></canvas>
+				</div>
+				<div>
+					<canvas ref="lyf" id="lyf"></canvas>
+				</div>
+				<div>
+					<canvas ref="lyg" id="lyg"></canvas>
+				</div>
+
+            </div>
+        </section>
     </div>
 
-    <script src="https://unpkg.com/vue"></script>
-    <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
-    <script src="https://unpkg.com/buefy/dist/components/table"></script>
-    <script src="https://unpkg.com/buefy/dist/components/input"></script>
-	<script async src="opencvp.js" type="text/javascript" onload="onCvLoaded();"></script>
 
-    <script>
-    	function onCvLoaded () {
+    </div>
+
+<script src="https://unpkg.com/vue"></script>
+<!-- Full bundle -->
+<script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+
+<!-- Individual components -->
+<script src="https://unpkg.com/buefy/dist/components/table"></script>
+<script src="https://unpkg.com/buefy/dist/components/input"></script>
+
+<script>
+	var app = new Vue({
+        el: '#app',
+        data(){
+        	return {
+        		opcion:'',
+        		color:{
+        			min:[0,0,0,0],
+        			max:[255,255,255,255],
+        		}
+        	}
+        }
+    });
+function onCvLoaded () {
     console.log('cv', cv);
     cv.onRuntimeInitialized = onReady;
 }
@@ -39,7 +125,7 @@ let streaming = false;
 var rmin = [0, 51, 0, 0]
 var rmax = [50, 255, 50, 255]
 function onReady () {
-    let src, dst, lay;
+    let src, lya, lyb, lyc, lyd, lye, lyf, lyg;
     const cap = new cv.VideoCapture(video);
 
     actionBtn.addEventListener('click', () => {
@@ -61,9 +147,13 @@ function onReady () {
             video.play();
             streaming = true;
             src = new cv.Mat(height, width, cv.CV_8UC4);
-            mask = new cv.Mat(height, width, cv.CV_8UC4);
-            open = new cv.Mat(height, width, cv.CV_8UC4);
-            dst = new cv.Mat(height, width, cv.CV_8UC4);
+            lya = new cv.Mat(height, width, cv.CV_8UC4);
+            lyb = new cv.Mat(height, width, cv.CV_8UC4);
+            lyc = new cv.Mat(height, width, cv.CV_8UC4);
+            lyd = new cv.Mat(height, width, cv.CV_8UC4);
+            lye = new cv.Mat(height, width, cv.CV_8UC4);
+            lyf = new cv.Mat(height, width, cv.CV_8UC4);
+            lyg = new cv.Mat(height, width, cv.CV_8UC4);
             requestAnimationFrame(processVideo);
         })
         .catch(err => console.log(`An error occurred: ${err}`));
@@ -83,42 +173,68 @@ function onReady () {
     function processVideo () {
         if (!streaming) {
             src.delete();
-            dst.delete();
+            lya.delete();
+            lyb.delete();
+            lyc.delete();
             return;
         }
-        const begin = Date.now();
         cap.read(src)
-        //cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+        if (app.opcion=='espacio-color'){
+        	cv.cvtColor(src, lya, cv.COLOR_RGBA2GRAY);
+        	cv.imshow('lya', lya);
+	        let low = new cv.Mat(src.rows, src.cols, src.type(), app.color.min);
+	        let high = new cv.Mat(src.rows, src.cols, src.type(), app.color.max);
+	        cv.inRange(src, low, high, lyb);
+	        low.delete(); high.delete();
+        	cv.imshow('lyb', lyb);
+        } else if (app.opcion=='forma'){
+			let M = cv.Mat.ones(5, 5, cv.CV_8U);
+			let anchor = new cv.Point(-1, -1);
+			cv.erode(src, lya, M, anchor, 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
+			cv.imshow('lya', lya);
+			M.delete();
 
-        let low = new cv.Mat(src.rows, src.cols, src.type(), rmin);
-        let high = new cv.Mat(src.rows, src.cols, src.type(), rmax);
-        cv.inRange(src, low, high, mask);
-        low.delete(); high.delete();
+			M = cv.Mat.ones(5, 5, cv.CV_8U);
+			anchor = new cv.Point(-1, -1);
+			cv.dilate(src, lyb, M, anchor, 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
+			cv.imshow('lyb', lyb);
+			M.delete();
 
-        let M = cv.Mat.ones(5, 5, cv.CV_8U);
-        let anchor = new cv.Point(-1, -1);
-        cv.morphologyEx(mask, open, cv.MORPH_OPEN, M, anchor, 1, cv.BORDER_CONSTANT);
-        M.delete();
+			M = cv.Mat.ones(5, 5, cv.CV_8U);
+			anchor = new cv.Point(-1, -1);
+			cv.morphologyEx(src, lyc, cv.MORPH_OPEN, M, anchor, 1,
+			                cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
+			cv.imshow('lyc', lyc);
+			M.delete();
 
-        let rect = cv.boundingRect(open);
-        let contoursColor = new cv.Scalar(255, 255, 0);
-        let rectangleColor = new cv.Scalar(255, 0, 0);
-        //cv.drawContours(dst, contours, 0, contoursColor, 1, 8, hierarchy, 100);
-        let point1 = new cv.Point(rect.x, rect.y);
-        let point2 = new cv.Point(rect.x + rect.width, rect.y + rect.height);
-        cv.rectangle(src, point1, point2, rectangleColor, 2, cv.LINE_AA, 0);
+			M = cv.Mat.ones(5, 5, cv.CV_8U);
+			cv.morphologyEx(src, lyd, cv.MORPH_CLOSE, M);
+			cv.imshow('lyd', lyd);
+			M.delete();
 
+			cv.cvtColor(src, lyf, cv.COLOR_RGBA2RGB);
+			M = cv.Mat.ones(5, 5, cv.CV_8U);
+			cv.morphologyEx(lyf, lye, cv.MORPH_GRADIENT, M);
+			cv.imshow('lye', lye);
+			M.delete();
 
-        cv.imshow('canvasMask', mask);
-        cv.imshow('canvasOpen', open);
-        cv.imshow('canvasOutput', src);
+			cv.cvtColor(src, lyg, cv.COLOR_RGBA2RGB);
+			M = cv.Mat.ones(9, 9, cv.CV_8U);
+			cv.morphologyEx(lyg, lyf, cv.MORPH_TOPHAT, M);
+			cv.imshow('lyf', lyf);
+			M.delete();
+        } else if (app.opcion=='borde'){
+			cv.cvtColor(src, lyb, cv.COLOR_RGB2GRAY, 0);
+			cv.Canny(lyb, lya, 50, 100, 3, false);
+			cv.imshow('lya', lya);
+        }
         requestAnimationFrame(processVideo);
     }
     actionBtn.click()
 }
-        new Vue({
-            el: '#app'
-        })
-    </script>
+
+</script>
+
+<script async src="opencvp.js" type="text/javascript" onload="onCvLoaded();"></script>
 </body>
 </html>
